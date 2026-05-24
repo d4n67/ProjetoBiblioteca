@@ -6,6 +6,8 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+// Adiciona o contexto do MongoDB como serviço 
+builder.Services.AddSingleton<LaeleMilVeis.Data.MongoDbContext>();
 
 var app = builder.Build();
 
