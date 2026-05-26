@@ -14,6 +14,8 @@ builder.Services.AddSingleton<LaeleMilVeis.Data.MongoDbContext>();
 //o AddScoped cria uma nova instância da classe para cada requisição, limpando a memória depois da conclusão da rqeuisição.
 builder.Services.AddScoped<LaeleMilVeis.Data.UsuarioRepository>();
 builder.Services.AddScoped<LaeleMilVeis.Services.UsuarioService>();
+builder.Services.AddScoped<LaeleMilVeis.Data.LivroRepository>();
+builder.Services.AddScoped<LaeleMilVeis.Services.LivroService>();
 
 
 var app = builder.Build();
