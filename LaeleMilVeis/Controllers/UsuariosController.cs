@@ -9,11 +9,33 @@ namespace LaeleMilVeis.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly UsuarioService _service;
-
-        public UsuariosController(UsuarioService service)
+        private readonly TokenService _tokenService;
+        public UsuariosController(UsuarioService service, TokenService tokenService)
         {
+            
             _service = service;
+            _tokenService = tokenService;
         }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] Usuario loginRequest)
+        {
+            var usuario = await _service.AutenticarAsync(loginRequest.Email, loginRequest.Senha);
+
+            if (usuario == null)
+                return Unauthorized(new { mensagem = "E-mail ou senha inválidos." }); // Retorna HTTP 401 (Não Autorizado)
+
+            // Se as credenciais estão certas, gera a "pulseira" (Token)
+            var token = _tokenService.GerarToken(usuario);
+
+            // Devolve os dados do usuário e o token para o Frontend salvar
+            return Ok(new
+            {
+                user = new { usuario.Nome, usuario.Email, usuario.Perfil },
+                token = token
+            });
+        }
+
 
         [HttpGet] // GET /api/usuarios
         public async Task<IActionResult> ObterTodos()

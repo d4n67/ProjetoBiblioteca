@@ -59,5 +59,15 @@ namespace LaeleMilVeis.Services
             await _repository.DeletarAsync(id);
             return true;
         }
+        // Valida as credenciais e retorna o usuário se tiver tudo certo ou nulo se não
+        public async Task<Usuario?> AutenticarAsync(string email, string senha)
+        {
+            var usuario = await _repository.ObterPorEmailAsync(email);
+
+            if (usuario == null || usuario.Senha != senha)
+                return null;
+
+            return usuario;
+        }
     }
 }

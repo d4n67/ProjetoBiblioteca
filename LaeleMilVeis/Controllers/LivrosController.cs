@@ -1,5 +1,6 @@
 ﻿using LaeleMilVeis.Models;
 using LaeleMilVeis.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LaeleMilVeis.Controllers
@@ -31,6 +32,7 @@ namespace LaeleMilVeis.Controllers
         }
 
         [HttpPost]
+        [Authorize] // qualquer user pode adicionar livros ok
         public async Task<IActionResult> Criar([FromBody] Livro novoLivro)
         {
             try
@@ -72,6 +74,7 @@ namespace LaeleMilVeis.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")] //só adm pode deletar os livros
         public async Task<IActionResult> Deletar(string id)
         {
             try
