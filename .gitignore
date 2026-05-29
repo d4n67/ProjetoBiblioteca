@@ -14,3 +14,4 @@ obj/
 **/appsettings.Development.local.json
 **/appsettings.*.local.json
 **/secrets.json
+**/LaeleMilVeis/appsettings.Development.json
