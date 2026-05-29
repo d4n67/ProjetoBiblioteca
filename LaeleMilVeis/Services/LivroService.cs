@@ -17,6 +17,34 @@ namespace LaeleMilVeis.Services
 
         public async Task<List<Livro>> ListarTodosLivrosAsync() => await _livroRepository.ObterTodosAsync();
 
+        public async Task<List<LivroComUsuarioDto>> ListarLivrosComVinculoUsuarioAsync()
+        {
+            var livros = await _livroRepository.ObterTodosAsync();
+            var usuarios = await _usuarioRepository.ObterTodosAsync();
+            var usuariosPorId = usuarios
+                .Where(u => u.Id != null)
+                .ToDictionary(u => u.Id!);
+
+            return livros.Select(livro =>
+            {
+                Usuario? usuario = null;
+                if (!string.IsNullOrEmpty(livro.UsuarioId))
+                    usuariosPorId.TryGetValue(livro.UsuarioId, out usuario);
+
+                return new LivroComUsuarioDto
+                {
+                    Id = livro.Id,
+                    Titulo = livro.Titulo,
+                    Autor = livro.Autor,
+                    Ano = livro.Ano,
+                    Disponivel = livro.Disponivel,
+                    UsuarioId = livro.UsuarioId,
+                    UsuarioNome = usuario?.Nome,
+                    UsuarioEmail = usuario?.Email
+                };
+            }).ToList();
+        }
+
         public async Task<Livro?> BuscarPorIdAsync(string id) => await _livroRepository.ObterPorIdAsync(id);
 
         public async Task<Livro> CadastrarLivroAsync(Livro livro)
@@ -29,6 +57,25 @@ namespace LaeleMilVeis.Services
 
             await _livroRepository.CriarAsync(livro);
             return livro;
+        }
+
+        public async Task<List<Livro>> ListarPorUsuarioAsync(string usuarioId) =>
+            await _livroRepository.ObterLivrosPorUsuarioAsync(usuarioId);
+
+        public async Task<bool> AtualizarLivroAsync(string id, Livro dadosAtualizados)
+        {
+            var livro = await _livroRepository.ObterPorIdAsync(id);
+            if (livro == null) return false;
+
+            if (string.IsNullOrEmpty(dadosAtualizados.Titulo) || string.IsNullOrEmpty(dadosAtualizados.Autor))
+                throw new ArgumentException("Título e Autor são obrigatórios.");
+
+            livro.Titulo = dadosAtualizados.Titulo;
+            livro.Autor = dadosAtualizados.Autor;
+            livro.Ano = dadosAtualizados.Ano;
+
+            await _livroRepository.BlacklistAtualizarAsync(id, livro);
+            return true;
         }
 
         // Realizar emprestimo de livro pra algum user e validar se o livro existe, se tá disponível e se o usuário existe
@@ -48,13 +95,15 @@ namespace LaeleMilVeis.Services
             return true;
         }
 
-        //Devolver Livro
-        public async Task<bool> DevolverLivroAsync(string livroId)
+        //Devolver Livro (apenas quem emprestou pode devolver)
+        public async Task<bool> DevolverLivroAsync(string livroId, string usuarioId)
         {
             var livro = await _livroRepository.ObterPorIdAsync(livroId);
-            if (livro == null || livro.Disponivel) return false; // Livro não existe ou já está disponível
+            if (livro == null || livro.Disponivel) return false;
 
-            // limpando o campo UsuarioId e marcando o livro como disponível denovo
+            if (livro.UsuarioId != usuarioId)
+                throw new InvalidOperationException("Este livro não está emprestado para você.");
+
             livro.Disponivel = true;
             livro.UsuarioId = null;
 

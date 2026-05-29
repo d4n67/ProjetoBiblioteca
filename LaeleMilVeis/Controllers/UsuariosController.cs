@@ -1,5 +1,6 @@
 ﻿using LaeleMilVeis.Models;
 using LaeleMilVeis.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LaeleMilVeis.Controllers
@@ -31,13 +32,14 @@ namespace LaeleMilVeis.Controllers
             // Devolve os dados do usuário e o token para o Frontend salvar
             return Ok(new
             {
-                user = new { usuario.Nome, usuario.Email, usuario.Perfil },
+                user = new { id = usuario.Id, usuario.Nome, usuario.Email, usuario.Perfil },
                 token = token
             });
         }
 
 
-        [HttpGet] // GET /api/usuarios
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ObterTodos()
         {
             var usuarios = await _service.ListarTodosUsuariosAsync();
@@ -72,7 +74,8 @@ namespace LaeleMilVeis.Controllers
             }
         }
 
-        [HttpPut("{id}")] // PUT /api/usuarios/{id}
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Atualizar(string id, [FromBody] Usuario usuarioAtualizado)
         {
             var sucesso = await _service.AtualizarUsuarioAsync(id, usuarioAtualizado);
@@ -81,7 +84,8 @@ namespace LaeleMilVeis.Controllers
             return NoContent(); // Retorna HTTP 204 (Sucesso mas nao retorna nada pq n tem usuário)
         }
 
-        [HttpDelete("{id}")] // DELETE /api/usuarios/{id}
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Deletar(string id)
         {
             var sucesso = await _service.DeletarUsuarioAsync(id);

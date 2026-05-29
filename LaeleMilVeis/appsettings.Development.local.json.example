@@ -1,0 +1,9 @@
+{
+  "MongoDbSettings": {
+    "ConnectionString": "mongodb+srv://<usuario>:<senha>@<cluster>.mongodb.net/?appName=Cluster0",
+    "DatabaseName": "ProjetoBiblioteca"
+  },
+  "JwtSettings": {
+    "Secret": "<chave-secreta-com-pelo-menos-32-caracteres>"
+  }
+}

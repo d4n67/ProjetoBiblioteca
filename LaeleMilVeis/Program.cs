@@ -7,6 +7,17 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Em Development, carrega appsettings.Development.local.json (não versionado no Git)
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddJsonFile(
+        "appsettings.Development.local.json",
+        optional: true,
+        reloadOnChange: true);
+}
+
+ValidarConfiguracoesObrigatorias(builder.Configuration);
+
 builder.Services.AddControllers();
 
 // swagger tem que aceitar o token jwt
@@ -42,8 +53,7 @@ builder.Services.AddScoped<LivroRepository>();
 builder.Services.AddScoped<LivroService>();
 builder.Services.AddScoped<TokenService>(); 
 
-// ativa a auth no .net
-var secret = builder.Configuration.GetSection("JwtSettings:Secret").Value;
+var secret = builder.Configuration["JwtSettings:Secret"]!;
 var key = Encoding.ASCII.GetBytes(secret);
 
 builder.Services.AddAuthentication(x =>
@@ -67,6 +77,34 @@ builder.Services.AddAuthentication(x =>
     };
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReact", policy =>
+    {
+        if (builder.Environment.IsDevelopment())
+        {
+            // Vite pode usar 5173, 5174, etc. se a porta padrão estiver ocupada
+            policy.SetIsOriginAllowed(origin =>
+            {
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                    return false;
+
+                return uri.Host is "localhost" or "127.0.0.1";
+            });
+        }
+        else
+        {
+            policy.WithOrigins(
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://localhost:5174");
+        }
+
+        policy.AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -75,12 +113,26 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("AllowReact");
 app.UseHttpsRedirection();
 
-// autenticalçao vem antes de autorização.
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
+
+static void ValidarConfiguracoesObrigatorias(IConfiguration configuration)
+{
+    var connectionString = configuration["MongoDbSettings:ConnectionString"];
+    var jwtSecret = configuration["JwtSettings:Secret"];
+
+    if (string.IsNullOrWhiteSpace(connectionString) || string.IsNullOrWhiteSpace(jwtSecret))
+    {
+        throw new InvalidOperationException(
+            "Configurações sensíveis ausentes. Defina MongoDbSettings:ConnectionString e JwtSettings:Secret via " +
+            "User Secrets (dotnet user-secrets set), appsettings.Development.local.json (copie de appsettings.Development.local.json.example) " +
+            "ou variáveis de ambiente. Consulte o README.md na raiz do repositório.");
+    }
+}

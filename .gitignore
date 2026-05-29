@@ -9,3 +9,8 @@ obj/
 
 # VS Code
 .vscode/
+
+# Configurações locais com segredos (nunca commitar)
+**/appsettings.Development.local.json
+**/appsettings.*.local.json
+**/secrets.json
