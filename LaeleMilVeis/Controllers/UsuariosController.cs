@@ -21,20 +21,32 @@ namespace LaeleMilVeis.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] Usuario loginRequest)
         {
-            var usuario = await _service.AutenticarAsync(loginRequest.Email, loginRequest.Senha);
-
-            if (usuario == null)
-                return Unauthorized(new { mensagem = "E-mail ou senha inválidos." }); // Retorna HTTP 401 (Não Autorizado)
-
-            // Se as credenciais estão certas, gera a "pulseira" (Token)
-            var token = _tokenService.GerarToken(usuario);
-
-            // Devolve os dados do usuário e o token para o Frontend salvar
-            return Ok(new
+            try
             {
-                user = new { id = usuario.Id, usuario.Nome, usuario.Email, usuario.Perfil },
-                token = token
-            });
+                if (loginRequest == null || string.IsNullOrEmpty(loginRequest.Email) || string.IsNullOrEmpty(loginRequest.Senha))
+                    return BadRequest(new { erro = "E-mail e senha são obrigatórios." });
+
+                var usuario = await _service.AutenticarAsync(loginRequest.Email, loginRequest.Senha);
+
+                if (usuario == null)
+                    return Unauthorized(new { mensagem = "E-mail ou senha inválidos." }); // Retorna HTTP 401
+
+                // Se as credenciais estão certas, gera a "pulseira" (Token)
+                var token = _tokenService.GerarToken(usuario);
+
+                // Devolve os dados do usuário e o token para o Frontend salvar
+                return Ok(new
+                {
+                    user = new { id = usuario.Id, usuario.Nome, usuario.Email, usuario.Perfil },
+                    token = token
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log de erro (considera usar um logger aqui em produção)
+                Console.Error.WriteLine($"Erro no login: {ex.Message}");
+                return StatusCode(500, new { erro = "Erro interno ao processar login." });
+            }
         }
 
 

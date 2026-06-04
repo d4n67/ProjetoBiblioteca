@@ -47,9 +47,9 @@ builder.Services.AddSwaggerGen(c =>
 
 // Registrar serviços e repositórios
 builder.Services.AddSingleton<MongoDbContext>();
-builder.Services.AddScoped<UsuarioRepository>();
+builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<UsuarioService>();
-builder.Services.AddScoped<LivroRepository>();
+builder.Services.AddScoped<ILivroRepository, LivroRepository>();
 builder.Services.AddScoped<LivroService>();
 builder.Services.AddScoped<TokenService>(); 
 

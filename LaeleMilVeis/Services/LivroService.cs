@@ -111,6 +111,41 @@ namespace LaeleMilVeis.Services
             return true;
         }
 
+        // Admin empresta um livro para um usuário específico
+        public async Task<bool> EmprestarLivroAdminAsync(string livroId, string usuarioId)
+        {
+            var livro = await _livroRepository.ObterPorIdAsync(livroId);
+            if (livro == null || !livro.Disponivel) return false; // Livro não existe ou já está emprestado
+
+            var usuario = await _usuarioRepository.ObterPorIdAsync(usuarioId);
+            if (usuario == null) throw new InvalidOperationException("Usuário informado não existe.");
+
+            livro.Disponivel = false;
+            livro.UsuarioId = usuarioId;
+
+            await _livroRepository.BlacklistAtualizarAsync(livroId, livro);
+            return true;
+        }
+
+        // Admin devolve um livro emprestado para um usuário específico
+        public async Task<bool> DevolverLivroAdminAsync(string livroId, string usuarioId)
+        {
+            var livro = await _livroRepository.ObterPorIdAsync(livroId);
+            if (livro == null || livro.Disponivel) return false; // Livro não existe ou já está disponível
+
+            var usuario = await _usuarioRepository.ObterPorIdAsync(usuarioId);
+            if (usuario == null) throw new InvalidOperationException("Usuário informado não existe.");
+
+            if (livro.UsuarioId != usuarioId)
+                throw new InvalidOperationException($"Este livro não está emprestado para o usuário {usuario.Nome}.");
+
+            livro.Disponivel = true;
+            livro.UsuarioId = null;
+
+            await _livroRepository.BlacklistAtualizarAsync(livroId, livro);
+            return true;
+        }
+
         public async Task<bool> DeletarLivroAsync(string id)
         {
             var livro = await _livroRepository.ObterPorIdAsync(id);

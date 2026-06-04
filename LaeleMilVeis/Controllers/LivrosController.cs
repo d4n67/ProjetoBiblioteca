@@ -126,6 +126,40 @@ namespace LaeleMilVeis.Controllers
             }
         }
 
+        [HttpPost("{id}/emprestar-admin/{usuarioId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> EmprestarAdmin(string id, string usuarioId)
+        {
+            try
+            {
+                var sucesso = await _service.EmprestarLivroAdminAsync(id, usuarioId);
+                if (!sucesso) return BadRequest(new { erro = "Livro indisponível ou não encontrado." });
+
+                return Ok(new { mensagem = "Empréstimo realizado com sucesso pelo administrador!" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { erro = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/devolver-admin/{usuarioId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DevolverAdmin(string id, string usuarioId)
+        {
+            try
+            {
+                var sucesso = await _service.DevolverLivroAdminAsync(id, usuarioId);
+                if (!sucesso) return BadRequest(new { erro = "Livro não encontrado ou já se encontra disponível." });
+
+                return Ok(new { mensagem = "Livro devolvido com sucesso pelo administrador!" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { erro = ex.Message });
+            }
+        }
+
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Deletar(string id)

@@ -3,11 +3,20 @@ using MongoDB.Driver;
 
 namespace LaeleMilVeis.Data
 {
-    public class UsuarioRepository
+    public interface IUsuarioRepository
+    {
+        Task<List<Usuario>> ObterTodosAsync();
+        Task<Usuario?> ObterPorIdAsync(string id);
+        Task<Usuario?> ObterPorEmailAsync(string email);
+        Task CriarAsync(Usuario usuario);
+        Task AtualizarAsync(string id, Usuario usuario);
+        Task DeletarAsync(string id);
+    }
+
+    public class UsuarioRepository : IUsuarioRepository
     {
         private readonly IMongoCollection<Usuario> _usuarios;
 
-       
         public UsuarioRepository(MongoDbContext context)
         {
             _usuarios = context.Usuarios;

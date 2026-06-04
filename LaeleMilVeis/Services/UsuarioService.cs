@@ -1,16 +1,19 @@
 ﻿using LaeleMilVeis.Data;
 using LaeleMilVeis.Models;
+using BCrypt.Net;
 
 namespace LaeleMilVeis.Services
 {
     public class UsuarioService
     {
-        private readonly UsuarioRepository _repository;
+        private readonly IUsuarioRepository _repository;
+        private readonly ILivroRepository _livroRepository;
 
-        // O .NET injeta o repositório aq
-        public UsuarioService(UsuarioRepository repository)
+        // O .NET injeta os repositórios aq
+        public UsuarioService(IUsuarioRepository repository, ILivroRepository livroRepository)
         {
             _repository = repository;
+            _livroRepository = livroRepository;
         }
 
         public async Task<List<Usuario>> ListarTodosUsuariosAsync() =>
@@ -22,13 +25,28 @@ namespace LaeleMilVeis.Services
         // regra de negócio/tratamento de erros.
         public async Task<Usuario> CadastrarUsuarioAsync(Usuario usuario)
         {
+            if (usuario == null)
+                throw new ArgumentException("Dados do usuário são obrigatórios.");
+
+            if (string.IsNullOrWhiteSpace(usuario.Nome))
+                throw new ArgumentException("Nome é obrigatório.");
+
             if (string.IsNullOrEmpty(usuario.Email) || string.IsNullOrEmpty(usuario.Senha))
                 throw new ArgumentException("E-mail e Senha são obrigatórios.");
+
+            if (usuario.Senha.Length < 6)
+                throw new ArgumentException("A senha deve ter pelo menos 6 caracteres.");
+
+            if (!usuario.Email.Contains("@"))
+                throw new ArgumentException("E-mail inválido.");
 
             // Verifica se já existe um email igual no bd
             var usuarioExistente = await _repository.ObterPorEmailAsync(usuario.Email);
             if (usuarioExistente != null)
                 throw new InvalidOperationException("Este e-mail já está em uso por outro usuário.");
+
+            // Hash da senha antes de salvar
+            usuario.Senha = BCrypt.Net.BCrypt.HashPassword(usuario.Senha);
 
             await _repository.CriarAsync(usuario);
             return usuario;
@@ -45,7 +63,7 @@ namespace LaeleMilVeis.Services
             usuarioExistente.Perfil = dadosAtualizados.Perfil;
 
             if (!string.IsNullOrEmpty(dadosAtualizados.Senha))
-                usuarioExistente.Senha = dadosAtualizados.Senha;
+                usuarioExistente.Senha = BCrypt.Net.BCrypt.HashPassword(dadosAtualizados.Senha);
 
             await _repository.AtualizarAsync(id, usuarioExistente);
             return true;
@@ -56,16 +74,35 @@ namespace LaeleMilVeis.Services
             var usuarioExistente = await _repository.ObterPorIdAsync(id);
             if (usuarioExistente == null) return false;
 
+            // Libera todos os livros deste usuário antes de deletá-lo
+            await _livroRepository.LiberarLivrosUsuarioAsync(id);
+
             await _repository.DeletarAsync(id);
             return true;
         }
         // Valida as credenciais e retorna o usuário se tiver tudo certo ou nulo se não
         public async Task<Usuario?> AutenticarAsync(string email, string senha)
         {
+            // Validação de entrada
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(senha))
+                return null;
+
             var usuario = await _repository.ObterPorEmailAsync(email);
 
-            if (usuario == null || usuario.Senha != senha)
+            if (usuario == null || string.IsNullOrEmpty(usuario.Senha))
                 return null;
+
+            try
+            {
+                // Verifica a senha com BCrypt
+                if (!BCrypt.Net.BCrypt.Verify(senha, usuario.Senha))
+                    return null;
+            }
+            catch (FormatException)
+            {
+                // Hash inválido no banco de dados
+                return null;
+            }
 
             return usuario;
         }
