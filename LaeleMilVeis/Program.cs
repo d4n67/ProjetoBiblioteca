@@ -46,14 +46,35 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Registrar serviços e repositórios
-builder.Services.AddSingleton<MongoDbContext>();
+// Registra MongoDbContext via factory e valida configurações necessárias imediatamente
+builder.Services.AddSingleton<MongoDbContext>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var connectionString = config["MongoDbSettings:ConnectionString"];
+    var databaseName = config["MongoDbSettings:DatabaseName"];
+
+    if (string.IsNullOrWhiteSpace(connectionString) || string.IsNullOrWhiteSpace(databaseName))
+    {
+        throw new InvalidOperationException(
+            "Configurações do MongoDB ausentes. Defina MongoDbSettings:ConnectionString e MongoDbSettings:DatabaseName via User Secrets, appsettings.Development.local.json ou variáveis de ambiente.");
+    }
+
+    return new MongoDbContext(config);
+});
+
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<UsuarioService>();
 builder.Services.AddScoped<ILivroRepository, LivroRepository>();
 builder.Services.AddScoped<LivroService>();
-builder.Services.AddScoped<TokenService>(); 
+builder.Services.AddScoped<TokenService>();
 
-var secret = builder.Configuration["JwtSettings:Secret"]!;
+// Garantir que o secret JWT exista antes de usar
+var secret = builder.Configuration["JwtSettings:Secret"];
+if (string.IsNullOrWhiteSpace(secret))
+{
+    throw new InvalidOperationException(
+        "JwtSettings:Secret ausente. Defina JwtSettings:Secret via User Secrets, appsettings.Development.local.json ou variáveis de ambiente.");
+}
 var key = Encoding.ASCII.GetBytes(secret);
 
 builder.Services.AddAuthentication(x =>

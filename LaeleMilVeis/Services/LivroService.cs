@@ -5,11 +5,11 @@ namespace LaeleMilVeis.Services
 {
     public class LivroService
     {
-        private readonly LivroRepository _livroRepository;
-        private readonly UsuarioRepository _usuarioRepository;
+        private readonly ILivroRepository _livroRepository;
+        private readonly IUsuarioRepository _usuarioRepository;
 
         // uso o repositório de user pra validar se o usuário existe na hora de emprestar um livro
-        public LivroService(LivroRepository livroRepository, UsuarioRepository usuarioRepository)
+        public LivroService(ILivroRepository livroRepository, IUsuarioRepository usuarioRepository)
         {
             _livroRepository = livroRepository;
             _usuarioRepository = usuarioRepository;
